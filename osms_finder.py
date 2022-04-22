@@ -5,7 +5,6 @@ import socket
 
 
 def getArguments():
-
     parser = ArgumentParser()
     parser.add_argument('--target', help='Enter a target site address')
     parser.add_argument('--ipFile', help='Ip address file')
@@ -14,7 +13,6 @@ def getArguments():
 
 
 def ipLister(file: str) -> list:
-
     try:
         with open(file, 'r') as f:
             ips = [i.strip() for i in f.readlines()
@@ -28,7 +26,6 @@ def ipLister(file: str) -> list:
 
 
 def linkFinder(site: str) -> list:
-
     r = requests.get(site).text
     d = BeautifulSoup(r, 'html.parser')
     all_links = d.find_all('a')
@@ -36,7 +33,6 @@ def linkFinder(site: str) -> list:
     links = []
 
     for i in all_links:
-
         if (i.startswith('https://') or i.startswith('http://')):
             links.append(i)
 
@@ -44,15 +40,11 @@ def linkFinder(site: str) -> list:
 
 
 def scanner(links: str, ips: list, wosub: str) -> None:
-
     links = set(links)
-
     found = False
 
     for siteaddr in links:
-
         if (wosub not in siteaddr):
-
             try:
                 tIp = socket.gethostbyname(siteaddr)
 
@@ -68,8 +60,8 @@ def scanner(links: str, ips: list, wosub: str) -> None:
 
 
 def addressStriper(links: list) -> list:
-
     l = []
+    
     for i in links:
         i = http_s_striper(i)
         slash_index = i.find('/')
@@ -83,7 +75,6 @@ def addressStriper(links: list) -> list:
 
 
 def http_s_striper(site: str) -> str:
-
     if (site.startswith('http://')):
         return site[7:].strip('/')
 
