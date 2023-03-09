@@ -1,4 +1,5 @@
 from argparse import ArgumentParser
+from urllib.parse import urlparse
 from bs4 import BeautifulSoup
 import requests
 import socket
@@ -25,88 +26,66 @@ def ipLister(file: str) -> list:
         quit()
 
 
-def linkFinder(site: str) -> list:
+def linkFinder(site: str) -> set:
     r = requests.get(site).text
     d = BeautifulSoup(r, 'html.parser')
     all_links = d.find_all('a')
     all_links = [i.attrs['href'] for i in all_links]
-    links = []
+    checked_links = set()
 
     for i in all_links:
-        if (i.startswith('https://') or i.startswith('http://')):
-            links.append(i)
+        if i.startswith(('https://', 'http://')):
+            i = urlparse(i)
+            i = i.scheme + '://' + i.netloc
+            if notSub not in i: checked_links.add(i)
 
-    return addressStriper(links)
+    return checked_links
 
 
-def scanner(links: str, ips: list, wosub: str) -> None:
-    links = set(links)
-    found = False
+def showLinks(fLinks: dict) -> None:
+    for (link, ip) in fLinks.items():
+        print(link.ljust(50) + " | " + ip)
+
+
+def scanner(links: set, ips: list) -> None:
+    sameServerLinks = {}
 
     for siteaddr in links:
-        if (wosub not in siteaddr):
-            try:
-                tIp = socket.gethostbyname(siteaddr)
+        try:
+            tIp = socket.gethostbyname(urlparse(siteaddr).netloc)
 
-            except socket.error:
-                print(f'[*]-> I can\'t connect to site {siteaddr}')
-                continue
+        except socket.error:
+            print(f'[*]-> I can\'t connect to site {siteaddr}')
+            continue
 
-            if (tIp in ips):
-                found = True
+        if tIp in ips:
+            sameServerLinks[siteaddr] = tIp
 
-    if (not found):
+    if len(sameServerLinks.keys()) == 0:
         print('\n[!]-> No other site found on the same server!! <-[!]\n')
-
-
-def addressStriper(links: list) -> list:
-    l = []
-    
-    for i in links:
-        i = http_s_striper(i)
-        slash_index = i.find('/')
-        if (slash_index == -1):
-            l.append(i)
-
-        else:
-            l.append(i[:slash_index])
-
-    return l
-
-
-def http_s_striper(site: str) -> str:
-    if (site.startswith('http://')):
-        return site[7:].strip('/')
-
-    elif (site.startswith('https://')):
-        return site[8:].strip('/')
-
     else:
-        return site.strip('/')
+        showLinks(sameServerLinks)
 
 
 def main() -> None:
-
+    global notSub, ip_list
     args = getArguments()
     target = args.target
-    notSub = args.notSub
+    notSub = args.notSub.strip('/')
 
-    if (target):
-
-        if ((notSub) and (notSub in target)) and \
-                (target.startswith('https://') or target.startswith('http://')):
-
+    if target:
+        if (notSub and (notSub in target)) and (target.startswith(('https://', 'http://'))):
             try:
-                ip_list = [socket.gethostbyname(http_s_striper(target))]
+                ip_list = [socket.gethostbyname(urlparse(target).netloc)]
 
             except socket.error:
                 print('[!]-> Check the given site or your internet connection <-[!]')
                 quit()
 
-            if (args.ipFile):
+            if args.ipFile:
                 ip_list.extend(ipLister(args.ipFile))
 
-            scanner(linkFinder(target), ip_list, notSub.strip('/'))
+            scanner(linkFinder(target), ip_list)
 
         else:
             print('\n[!]-> Please, check the notSub parameter value! <-[!]\n')
