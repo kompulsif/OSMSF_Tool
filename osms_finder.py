@@ -27,7 +27,7 @@ def ipLister(file: str) -> list:
 
 
 def linkFinder(site: str) -> set:
-    r = requests.get(site).text
+    r = requests.get(site, headers=headers).text
     d = BeautifulSoup(r, 'html.parser')
     all_links = d.find_all('a')
     all_links = [i.attrs['href'] for i in all_links]
@@ -68,32 +68,40 @@ def scanner(links: set, ips: list) -> None:
 
 
 def main() -> None:
-    global notSub, ip_list
-    args = getArguments()
-    target = args.target
-    notSub = args.notSub.strip('/')
+    global notSub, ip_list, headers
+    try:
+        
+        args = getArguments()
+        target = args.target
+        notSub = args.notSub.strip('/')
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36"
+        }
 
-    if target:
-        if (notSub and (notSub in target)) and (target.startswith(('https://', 'http://'))):
-            try:
-                ip_list = [socket.gethostbyname(urlparse(target).netloc)]
-
-            except socket.error:
-                print('[!]-> Check the given site or your internet connection <-[!]')
-                quit()
-
-            if args.ipFile:
-                ip_list.extend(ipLister(args.ipFile))
-
-            scanner(linkFinder(target), ip_list)
-
-        else:
-            print('\n[!]-> Please, check the notSub parameter value! <-[!]\n')
+    except AttributeError:
+        print("\n[!]-> Please use parameters! <-[!]")
 
     else:
-        print(
-            '\n[!]-> Please enter a valid site address, Ex: https://www.exsitemysite.com\n')
+        if target:
+            if (notSub and (notSub in target)) and (target.startswith(('https://', 'http://'))):
+                try:
+                    ip_list = [socket.gethostbyname(urlparse(target).netloc)]
 
+                except socket.error:
+                    print('[!]-> Check the given site or your internet connection <-[!]')
+                    quit()
+
+                if args.ipFile:
+                    ip_list.extend(ipLister(args.ipFile))
+
+                scanner(linkFinder(target), ip_list)
+
+            else:
+                print('\n[!]-> Please, check the notSub parameter value! <-[!]\n')
+
+        else:
+            print(
+                '\n[!]-> Please enter a valid site address, Ex: https://www.exsitemysite.com\n')
 
 if __name__ == '__main__':
     main()
